@@ -1,31 +1,38 @@
-(function(hbs, $) {
+(function($) {
   $(function() {
-    // Precompile handlebars.
-    var template = hbs.compile($('#partial-images').html());
+    var twitter = $('.t-feed');
+    var yahoo = $('.y-feed');
     // Create promise.
-    var request = $.ajax({
-      url: 'http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=giftcards.com&rsz=8',
-      dataType: 'jsonp',
-      crossDomain: true
-    });
-    // Handle success
-    request.done(function(data) {
-      var results = data.responseData && data.responseData.results
-        , status = data.responseStatus;
-      // This isn't the normal way of handling it, but they return the status code in their
-      // response body
-      if (status === 200 && results && results.length) {
-        var html = template(results);
-        $('.container-images').html(html);
-      } else {
-        // There may be a chance that it responds with 200, but doesn't have images.
-        $(".error").toggle();
+    var requests = {
+      twitter: function() {
+        return $.ajax({
+          url: 'data/twitter.json',
+        });
+      },
+      yahoo: function() {
+        return $.ajax({
+          url: 'data/yahoo.json'
+        });
       }
-    });
-    // Handle error, if it occurs normally
-    request.error(function(xhr) {
-      // I couldn't get an error to occur
-      $(".error").toggle().html(xhr.responseText);
+    }
+    // Handle success
+    // See this link for how this works
+    // http://collaboradev.com/2014/01/27/understanding-javascript-promises-in-jquery/
+    $.when(requests.twitter(), requests.yahoo())
+    .done(function(twitterData, yahooData) {
+      var twitterHtml = '';
+      var yahooHtml = '';
+      // Simple data. For somereason jquery puts the data in arrays.
+      twitterData[0].forEach(function(item) {
+        twitterHtml += item.text + '-' + item['created-at'] + '<br /><br />';
+      });
+
+      // Yahoo data is buried in value.items
+      yahooData[0].value.items.forEach(function(item) {
+        yahooHtml += item.title + '-' + item['pubDate'] + '<br /><br />';
+      });
+      twitter.html(twitterHtml);
+      yahoo.html(yahooHtml);
     });
   });
-})(Handlebars, jQuery);
+})(jQuery);
